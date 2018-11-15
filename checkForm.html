@@ -1,0 +1,26 @@
+<script>
+
+$('form').submit(function(){
+
+	var form_bool = true;
+
+	$(this).find('.check').removeClass('check-error');
+
+	$(this).find('.check').each(function(){
+
+		if($(this).val()=='')
+		{
+			$(this).addClass('check-error');
+
+			form_bool = false;
+		}
+
+	});
+
+	if(form_bool == false){return false;}
+
+});
+
+
+
+</script>
