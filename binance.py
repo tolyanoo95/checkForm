@@ -19,10 +19,13 @@ trend_price = False
 trend_average = False
 profit = False
 
-average_price_count = 0
-average_count = 1
 
 symbol = 'GALAUSDT'
+deposite = 100
+order = 11
+all_coins = 0
+all_orders = 0
+average_price = 0
 
 rsi_test = True
 
@@ -35,7 +38,7 @@ while(True):
             price = float(item['lastPrice'])
 
     #get history
-    klines_arr = client.futures_historical_klines(symbol, Client.KLINE_INTERVAL_1MINUTE, "120 min ago UTC", )
+    klines_arr = client.futures_historical_klines(symbol, Client.KLINE_INTERVAL_3MINUTE, "5 hour ago UTC", )
     klines = []
 
     for item in klines_arr:
@@ -49,13 +52,13 @@ while(True):
 
 
     rsi = float(rsi_values.values[-1])
-    macd_diagram  = float('{:.4}'.format(macd_values['MACDh_12_26_9'].values[-1]))
-    macd_result = float('{:.4}'.format(macd_values['MACD_12_26_9'].values[-1]))
-    macd_signal  = float('{:.4}'.format(macd_values['MACDs_12_26_9'].values[-1]))
+    macd_diagram  = float('{:.5}'.format(macd_values['MACDh_12_26_9'].values[-1]))
+    macd_result = float('{:.5}'.format(macd_values['MACD_12_26_9'].values[-1]))
+    macd_signal  = float('{:.5}'.format(macd_values['MACDs_12_26_9'].values[-1]))
 
     '''
     if(rsi_test):
-        rsi = 21
+        rsi = 71
         rsi_test = False
     '''
 
@@ -66,9 +69,6 @@ while(True):
             profit = True
         if(trend == 'BUY'):
             trend_average = True
-            print('Average true')
-
-        #if(trend == 'BUY' and ((average_price_chek - (average_price_chek/100)*1) > price)):
 
     if(rsi > 70):
         trend_rsi = 'SELL'
@@ -77,11 +77,6 @@ while(True):
             profit = True
         if(trend == 'SELL'):
             trend_average = True
-            print('Average true')
-
-
-        #if(trend == 'SELL' and ((average_price_chek + (average_price_chek/100)*1) < price)):
-
 
 
     #check macd
@@ -94,30 +89,53 @@ while(True):
 
 
     #check profit
+    #macd_profit = float('{:.8}'.format(macd_values['MACD_12_26_9'].values[-2]))
     if(trend == 'BUY'):
         if((macd_result > macd_diagram) and (macd_result > 0)):
             profit = True
+            if(trend_rsi == 'BUY'):
+                trend_rsi = False
     if(trend == 'SELL'):
         if((macd_result < macd_diagram) and (macd_result < 0)):
             profit = True
+            if(trend_rsi == 'SELL'):
+                trend_rsi = False
 
 
     #check average
     if(trend_average):
-        if(trend == 'BUY' and ((trend_price - (trend_price / 100) * 1) > price) and (macd_result > macd_signal) and (macd_result < 0) and (macd_signal < 0)):
+        if(trend == 'BUY' and ((trend_price - (trend_price / 100) * 1) > price) and (macd_result > macd_signal) and (macd_result < 0) and (macd_signal < 0) and (rsi > 30)):
             trend_price = price
             trend_average = False
-            average_price_count += trend_price
-            average_count += 1
+            order = order + ((order/100)*50)
+            coins = order/trend_price
+            all_coins += coins
+            all_orders += order
+            average_price = all_orders/all_coins
+            print('*' * 10)
             print('Average buy/sell: ' + str(trend_price))
-            print('Average price: ' + str(average_price_count/average_count))
-        if(trend == 'SELL' and ((trend_price + (trend_price / 100) * 1) < price) and (macd_result < macd_signal) and (macd_result > 0) and (macd_signal > 0)):
+            print('Order: ' + str(order))
+            print('Coins: ' + str(coins))
+            print('All coins: ' + str(all_coins))
+            print('All order: ' + str(all_orders))
+            print('Average price: ' + str(average_price))
+            print('*' * 10)
+        if(trend == 'SELL' and ((trend_price + (trend_price / 100) * 1) < price) and (macd_result < macd_signal) and (macd_result > 0) and (macd_signal > 0) and (rsi < 70)):
             trend_price = price
             trend_average = False
-            average_price_count += trend_price
-            average_count += 1
+            order = order + ((order / 100) * 50)
+            coins = order / trend_price
+            all_coins += coins
+            all_orders += order
+            average_price = all_orders / all_coins
+            print('*'*10)
             print('Average buy/sell: ' + str(trend_price))
-            print('Average price: ' + str(average_price_count/average_count))
+            print('Order: ' + str(order))
+            print('Coins: ' + str(coins))
+            print('All coins: ' + str(all_coins))
+            print('All order: ' + str(all_orders))
+            print('Average price: ' + str(average_price))
+            print('*' * 10)
 
 
 
@@ -125,22 +143,24 @@ while(True):
     if(trend_check != trend):
 
         trend_price = price
-        average_price_count += trend_price
-        average_count += 1
+        coins = order/trend_price
+        all_coins += coins
+        all_orders += order
 
         if(trend == 'BUY'):
             print('BUY: ' + str(trend_price))
         if(trend == 'SELL'):
             print('SELL: ' + str(trend_price))
-
+        print('Coins: ' + str(all_coins))
+        print('All order: ' + str(all_orders))
 
 
     #get profit
     if (profit):
         print('Price: ' + str(price))
-        if(average_price_count >= 2):
-            average_price = average_price_count/average_count
+        if(average_price):
             trend_price = average_price
+        print('Trend price ' + str(trend_price))
         if(trend == 'SELL'):
             procent = ((trend_price - price) / trend_price) * 100
         if(trend == 'BUY'):
@@ -152,8 +172,10 @@ while(True):
         trend_check = False
         profit = False
         trend_average = False
-        average_price_count = 0
-        average_count = 0
+        order = 11
+        all_coins = 0
+        all_orders = 0
+        average_price = 0
 
 
     trend_check = trend
